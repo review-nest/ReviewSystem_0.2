@@ -9,6 +9,9 @@ import os
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
+# =====================================
+# MOVIEPY SAFE IMPORT FIX (RENDER COMPATIBLE)
+# =====================================
 ImageClip = None
 concatenate_videoclips = None
 
@@ -35,6 +38,7 @@ SHEET_URL = "https://script.google.com/macros/s/AKfycbxz8OWXF5MxvzJwok3reHunQhdT
 MAX_FETCH = 50000
 BATCH_SIZE = 300
 
+# Global storage for fetched reviews and app info
 CURRENT_FETCHED_REVIEWS = []
 CURRENT_APP_INFO = {}
 
@@ -102,41 +106,41 @@ def process_and_upload_async(package, search_date, reviews_data, app_title):
     print("Google Sheet Upload Completed via Background Thread")
 
 # =====================================
-# UNIVERSAL EMOJI & SYMBOL MATCH SYSTEM
+# MATCH SYSTEM & KEYWORDS (FIXED EMOJI & SYMBOL LOGIC)
 # =====================================
 def is_symbol_or_emoji_only(text):
+    """Check karta hai ki text me sirf emojis ya symbols hi hain."""
     if not text:
         return False
-    # Check karta hai ki keyword me koi standard alphabet ya number nahi hai
     return all(not ch.isalnum() for ch in text)
 
 def match_keyword(comment, keyword):
-    comment = str(comment).rstrip()  # Trailing spaces remove
+    comment = str(comment).rstrip()  # Trailing space trim
     keyword = str(keyword).strip()  
 
     if not comment or not keyword:  
         return False  
 
-    # Agar Input Keyword Emojis ya Symbols se bane hain
+    # 1. Emoji / Symbol Exact Match Logic
     if is_symbol_or_emoji_only(keyword):
         clean_comment = comment.rstrip()
         
-        # Rule 1: Text end me exact keyword sequence par khatam hona chahiye
+        # Condition A: Text end me exact keyword sequence hona chahiye
         if not clean_comment.endswith(keyword):
             return False
 
-        # Rule 2: End me se Keyword ko temporary hatakar bacha hua part dekho
-        remaining_text = clean_comment[:-len(keyword)].rstrip()
+        # Condition B: Substring Check (To avoid matching '🙂🙂' when searching '🙂')
+        # Keyword ko comment ke last me se cut karke bacha hua comment nikalein
+        remaining_comment = clean_comment[:-len(keyword)].rstrip()
 
-        # Pehla Emoji / Symbol extracted sequence se
-        # Isse check karenge ki kya aakhri me keyword se jyada samne to nahi lagaye gaye emojis
-        # Example: Keyword = "🔥", Comment = "Nice 🔥🔥" -> remaining_text = "Nice 🔥"
-        if remaining_text.endswith(keyword[0]):
+        # Agar keyword string me se pehla emoji character bache hue string ke aakhri me mil gaya,
+        # iska matlab extra emojis/symbols मौजूद hain!
+        if remaining_comment and remaining_comment.endswith(keyword[0]):
             return False
 
         return True  
 
-    # Normal Text Keywords ke liye
+    # 2. Regular Text Keyword Match Logic (Exact word at the end of comment)
     escaped_kw = re.escape(keyword.lower())
     pattern = r'(?<!\w)' + escaped_kw + r'\s*$'  
     return re.search(pattern, comment.lower()) is not None
@@ -252,7 +256,7 @@ def fetch_reviews(package, search_date, rating=None, keyword=None):
     return data  
 
 # =====================================
-# REEL VIEW ROUTE
+# REEL VIEW ROUTE (SMOOTH AUTO-SCROLL)
 # =====================================
 @app.route("/reel")
 def reel_view():
@@ -317,4 +321,4 @@ def health():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-            
+    
