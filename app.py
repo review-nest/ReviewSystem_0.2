@@ -10,7 +10,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
 # =====================================
-# MOVIEPY SAFE IMPORT FIX (RENDER COMPATIBLE)
+# MOVIEPY SAFE IMPORT FIX
 # =====================================
 ImageClip = None
 concatenate_videoclips = None
@@ -38,12 +38,11 @@ SHEET_URL = "https://script.google.com/macros/s/AKfycbxz8OWXF5MxvzJwok3reHunQhdT
 MAX_FETCH = 50000
 BATCH_SIZE = 300
 
-# Global storage for fetched reviews and app info
 CURRENT_FETCHED_REVIEWS = []
 CURRENT_APP_INFO = {}
 
 # =====================================
-# UTILITY: EXTRACT PACKAGE NAME FROM LINK/ID
+# UTILITY
 # =====================================
 def extract_package_id(input_str):
     if not input_str:
@@ -55,7 +54,7 @@ def extract_package_id(input_str):
     return input_str
 
 # =====================================
-# GOOGLE SHEET UPLOAD (BACKGROUND TASK)
+# GOOGLE SHEET UPLOAD (BACKGROUND)
 # =====================================
 def save_batch(package, search_date, rows):
     try:  
@@ -106,76 +105,75 @@ def process_and_upload_async(package, search_date, reviews_data, app_title):
     print("Google Sheet Upload Completed via Background Thread")
 
 # =====================================
-# MATCH SYSTEM & KEYWORDS (FIXED EMOJI & SYMBOL LOGIC)
+# FIXED EMOJI & SYMBOL MATCHING LOGIC
 # =====================================
 def is_symbol_or_emoji_only(text):
-    """Check karta hai ki text me sirf emojis ya symbols hi hain."""
     if not text:
         return False
     return all(not ch.isalnum() for ch in text)
 
 def match_keyword(comment, keyword):
-    comment = str(comment).rstrip()  # Trailing space trim
-    keyword = str(keyword).strip()  
+    comment = str(comment).rstrip()
+    keyword = str(keyword).strip()
 
-    if not comment or not keyword:  
-        return False  
+    if not comment or not keyword:
+        return False
 
-    # 1. Emoji / Symbol Exact Match Logic
+    # 1. Emoji / Symbol Mode
     if is_symbol_or_emoji_only(keyword):
         clean_comment = comment.rstrip()
-        
-        # Condition A: Text end me exact keyword sequence hona chahiye
+
+        # Rule A: Text ke bilkul end me exact keyword sequence hona chahiye
         if not clean_comment.endswith(keyword):
             return False
 
-        # Condition B: Substring Check (To avoid matching '🙂🙂' when searching '🙂')
-        # Keyword ko comment ke last me se cut karke bacha hua comment nikalein
-        remaining_comment = clean_comment[:-len(keyword)].rstrip()
-
-        # Agar keyword string me se pehla emoji character bache hue string ke aakhri me mil gaya,
-        # iska matlab extra emojis/symbols मौजूद hain!
-        if remaining_comment and remaining_comment.endswith(keyword[0]):
+        # Rule B: Exact Emoji Count Security Check
+        # End se exact keyword sequence remove karein
+        base = clean_comment[:-len(keyword)].rstrip()
+        
+        # Check karein ki bache hue string ke aakhri me wahi keyword exact end-match toh nahi kar raha
+        # Example: Search="😊" aur Text="Encrypted 😊😊" -> base="Encrypted 😊" -> endswith("😊") True -> REJECT!
+        if base and base.endswith(keyword):
             return False
 
-        return True  
+        return True
 
-    # 2. Regular Text Keyword Match Logic (Exact word at the end of comment)
+    # 2. Text Mode (Exact word at end)
     escaped_kw = re.escape(keyword.lower())
-    pattern = r'(?<!\w)' + escaped_kw + r'\s*$'  
+    pattern = r'(?<!\w)' + escaped_kw + r'\s*$'
     return re.search(pattern, comment.lower()) is not None
 
 def keyword_match(comment, keyword_text):
-    if not keyword_text:  
-        return True  
+    if not keyword_text:
+        return True
 
-    keywords = [k.strip() for k in keyword_text.splitlines() if k.strip()]  
+    keywords = [k.strip() for k in keyword_text.splitlines() if k.strip()]
 
-    if not keywords:  
-        return True  
+    if not keywords:
+        return True
 
-    for word in keywords:  
-        if match_keyword(comment, word):  
-            return True  
+    for word in keywords:
+        if match_keyword(comment, word):
+            return True
 
     return False
 
 def review_pass(review, rating=None, keyword=None):
-    if rating:  
-        try:  
-            if review.get("score") != int(rating):  
-                return False  
-        except:  
-            return False  
+    if rating:
+        try:
+            if review.get("score") != int(rating):
+                return False
+        except:
+            return False
 
-    if keyword:  
-        if not keyword_match(review.get("content", ""), keyword):  
-            return False  
+    if keyword:
+        if not keyword_match(review.get("content", ""), keyword):
+            return False
 
     return True
 
 # =====================================
-# APP INFO
+# APP INFO & FETCH
 # =====================================
 def get_app_info(package):
     try:  
@@ -203,9 +201,6 @@ def review_date(review):
         return at.strftime("%Y-%m-%d")  
     return str(at)[:10]  
 
-# =====================================
-# REVIEW FETCH ENGINE
-# =====================================
 def fetch_reviews(package, search_date, rating=None, keyword=None):
     data = []  
     token = None  
@@ -256,7 +251,7 @@ def fetch_reviews(package, search_date, rating=None, keyword=None):
     return data  
 
 # =====================================
-# REEL VIEW ROUTE (SMOOTH AUTO-SCROLL)
+# ROUTES
 # =====================================
 @app.route("/reel")
 def reel_view():
@@ -267,9 +262,6 @@ def reel_view():
         app_info=CURRENT_APP_INFO
     )
 
-# =====================================
-# MAIN ROUTE
-# =====================================
 @app.route("/", methods=["GET", "POST"])
 def home():
     global CURRENT_FETCHED_REVIEWS, CURRENT_APP_INFO
@@ -309,9 +301,6 @@ def home():
         app_info=app_info  
     )  
 
-# =====================================
-# HEALTH CHECK
-# =====================================
 @app.route("/health")
 def health():
     return {  
