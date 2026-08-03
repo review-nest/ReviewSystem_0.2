@@ -106,27 +106,31 @@ def process_and_upload_async(package, search_date, reviews_data, app_title):
     print("Google Sheet Upload Completed via Background Thread")
 
 # =====================================
-# MATCH SYSTEM & KEYWORDS
+# MATCH SYSTEM & KEYWORDS (UPDATED)
 # =====================================
-def is_symbol_only(text):
-    if not text:  
-        return False  
+def is_symbol_or_emoji_only(text):
+    """Check karta hai ki input keyword me koi alphabet/digit nahi hai."""
+    if not text:
+        return False
     return all(not ch.isalnum() for ch in text)
 
 def match_keyword(comment, keyword):
-    comment = str(comment).strip()  
+    comment = str(comment).rstrip()  # Trailing spaces remove karne ke liye
     keyword = str(keyword).strip()  
 
     if not comment or not keyword:  
         return False  
 
-    if is_symbol_only(keyword):  
-        m = re.search(r'([^\w\s]+)$', comment)  
-        if not m:  
-            return False  
-        return m.group(1) == keyword  
+    # Agar Keyword sirf Emojis ya Symbols se bana hai
+    if is_symbol_or_emoji_only(keyword):  
+        escaped_keyword = re.escape(keyword)  
+        # Match only at the very end ($) after any number of spaces (\s*)
+        pattern = r'\s*' + escaped_keyword + r'$'  
+        return re.search(pattern, comment) is not None  
 
-    pattern = r'(?<!\w)' + re.escape(keyword.lower()) + r'(?!\w)'  
+    # Normal text keywords ke liye (Exact word/phrase at the end)
+    escaped_kw = re.escape(keyword.lower())
+    pattern = r'(?<!\w)' + escaped_kw + r'\s*$'  
     return re.search(pattern, comment.lower()) is not None
 
 def keyword_match(comment, keyword_text):
