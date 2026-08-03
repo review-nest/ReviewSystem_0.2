@@ -1,4 +1,7 @@
-Flask
+flask
 google-play-scraper
 requests
+pillow
+moviepy==1.0.3
 gunicorn
+decorator<5.0.0
