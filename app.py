@@ -33,7 +33,7 @@ app = Flask(__name__)
 # =====================================
 # CONFIG
 # =====================================
-SHEET_URL = "https://script.google.com/macros/s/AKfycbxz8OWXF5MxvzJwok3reHunQhdTdMTPhEhk9AAFARGvP6U3wYAScuc9qXAZf-PdY1zyeQ/exec"
+SHEET_URL = "https://script.google.com/macros/s/AKfycbwsVHry9S16tpp6JyXo7Gx4kkcgggH4MX8PzShtvqxzSgyFV_ZLB1gEwlW_Qa6248idoA/exec"
 
 MAX_FETCH = 50000
 BATCH_SIZE = 300
